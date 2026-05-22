@@ -594,6 +594,7 @@
         <a href="{{ url_for('titles.add', cid=char.id) }}" class="btn btn-secondary">Add Title</a>
         <a href="{{ url_for('planets.add', cid=char.id) }}" class="btn btn-secondary">Add Planet</a>
         <a href="{{ url_for('export.single', character_id=char.id) }}" class="btn btn-ghost">&#8595; Export to Standard Notes</a>
+        <a href="{{ url_for('export.single_markdown', character_id=char.id) }}" class="btn btn-ghost">&#8595; Export as Markdown</a>
         <form method="post"
               action="{{ url_for('characters.delete', cid=char.id) }}"
               class="inline-form"

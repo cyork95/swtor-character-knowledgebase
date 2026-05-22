@@ -60,7 +60,8 @@
     <div class="char-card-actions">
       <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-secondary btn-sm">View</a>
       <a href="{{ url_for('characters.edit', cid=char.id) }}" class="btn btn-ghost btn-sm">Edit</a>
-      <a href="{{ url_for('export.single', character_id=char.id) }}" class="btn btn-ghost btn-sm" title="Export to Standard Notes">&#8595; Export</a>
+      <a href="{{ url_for('export.single', character_id=char.id) }}" class="btn btn-ghost btn-sm" title="Export to Standard Notes">&#8595; SN</a>
+      <a href="{{ url_for('export.single_markdown', character_id=char.id) }}" class="btn btn-ghost btn-sm" title="Export as Markdown">&#8595; MD</a>
     </div>
   </article>
   {% endfor %}

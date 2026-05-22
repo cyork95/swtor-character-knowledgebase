@@ -3,7 +3,9 @@ import re
 import uuid
 from datetime import datetime, timezone
 
-from models import get_all_characters, get_character, get_decisions, get_companions, get_arcs
+from models import (get_all_characters, get_character, get_decisions, get_companions, get_arcs,
+                    get_alignment_rank, get_titles, get_planet_progress,
+                    get_character_outfits, get_companion_outfits, get_journal_entries)
 
 
 def slugify(text):
@@ -212,3 +214,250 @@ def export_all():
 
     payload = {'version': '004', 'items': note_items + tag_items}
     return json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
+
+
+# ---------------------------------------------------------------------------
+# Markdown Export
+# ---------------------------------------------------------------------------
+
+def _md_table(headers, rows):
+    """Build a simple markdown table."""
+    lines = []
+    lines.append('| ' + ' | '.join(headers) + ' |')
+    lines.append('| ' + ' | '.join('---' for _ in headers) + ' |')
+    for row in rows:
+        lines.append('| ' + ' | '.join(str(c) for c in row) + ' |')
+    return '\n'.join(lines)
+
+
+def format_markdown(character_id):
+    """
+    Render a single character as clean Markdown, including all new fields:
+    crew skills, outfits, companion outfits, titles, planet progress,
+    inventory notes, RP backstory, session journal.
+    """
+    character   = get_character(character_id)
+    if character is None:
+        return None
+
+    char        = dict(character)
+    decisions   = get_decisions(character_id)
+    companions  = get_companions(character_id)
+    arcs        = get_arcs(character_id)
+    rank        = get_alignment_rank(char.get('light_side_pts', 0), char.get('dark_side_pts', 0))
+    titles      = get_titles(character_id)
+    planets     = get_planet_progress(character_id)
+    outfits     = get_character_outfits(character_id)
+    comp_outfits = get_companion_outfits(character_id)
+    journal     = get_journal_entries(character_id)
+
+    L = []
+    hr = '---'
+
+    # ── Header ──────────────────────────────────────────────────────────────
+    cls = char.get('class') or ''
+    adv = char.get('advanced_class') or ''
+    class_str = cls + (f' / {adv}' if adv else '')
+    legacy = char.get('legacy') or ''
+
+    L.append(f'# {char["name"]}')
+    subtitle_parts = [p for p in [class_str, char.get('species'), char.get('server')] if p]
+    if legacy:
+        subtitle_parts.append(f'{legacy} Legacy')
+    L.append('*' + '  ·  '.join(subtitle_parts) + '*')
+    L.append('')
+
+    # ── Alignment ───────────────────────────────────────────────────────────
+    L.append('## Alignment')
+    L.append(f'**{rank["rank"]}** — Net {rank["net"]:+} pts')
+    L.append('')
+    L.append(_alignment_bar(char.get('light_side_pts', 0), char.get('dark_side_pts', 0)))
+    L.append('')
+
+    # ── Story Progress ───────────────────────────────────────────────────────
+    L.append('## Story Progress')
+    L.append(f'- **Expansion:** {char.get("current_expansion") or "—"}')
+    L.append(f'- **Chapter:** {char.get("current_chapter") or "—"}')
+    L.append('')
+
+    # ── Crew Skills ──────────────────────────────────────────────────────────
+    crew = [(char.get(f'crew_skill_{n}'), char.get(f'crew_skill_{n}_level', 1))
+            for n in (1, 2, 3) if char.get(f'crew_skill_{n}')]
+    if crew:
+        L.append('## Crew Skills')
+        for skill, level in crew:
+            L.append(f'- {skill} (Level {level})')
+        L.append('')
+
+    # ── Titles ───────────────────────────────────────────────────────────────
+    if titles:
+        L.append('## Titles & Achievements')
+        for t in titles:
+            t = dict(t)
+            line = f'- "{t["title"]}"'
+            if t.get('earned_at'):
+                line += f' — {t["earned_at"]}'
+            if t.get('notes'):
+                line += f'  \n  *{t["notes"]}*'
+            L.append(line)
+        L.append('')
+
+    # ── Story Arcs ───────────────────────────────────────────────────────────
+    if arcs:
+        L.append('## Completed Story Arcs')
+        for arc in arcs:
+            a = dict(arc)
+            L.append(f'- {a.get("arc_name", "—")} ({a.get("expansion", "—")})')
+        L.append('')
+
+    # ── Planet Progress ──────────────────────────────────────────────────────
+    if planets:
+        L.append('## Planet Progress')
+        status_icon = {'complete': '✓', 'in_progress': '▶', 'not_started': '○'}
+        rows = []
+        for p in planets:
+            p = dict(p)
+            icon = status_icon.get(p['status'], '?')
+            bonus = '✓' if p.get('bonus_series') else '—'
+            dc    = '✓' if p.get('datacrons')    else '—'
+            rows.append([f'{icon} {p["planet_name"]}', p['status'].replace('_', ' ').title(), bonus, dc])
+        L.append(_md_table(['Planet', 'Status', 'Bonus Series', 'Datacrons'], rows))
+        L.append('')
+
+    # ── Story Decisions ──────────────────────────────────────────────────────
+    if decisions:
+        L.append(f'## Story Decisions ({len(decisions)})')
+        for dec in decisions:
+            d = dict(dec)
+            impact = d.get('alignment_impact', 'NEUTRAL')
+            pts    = d.get('alignment_points', 0)
+            ts     = str(d.get('timestamp') or '')[:10]
+            L.append(f'### {impact} +{pts} pts — {d.get("choice", "")}')
+            if ts:
+                L.append(f'*{ts}*')
+            if d.get('context'):
+                L.append(f'- **Context:** {d["context"]}')
+            if d.get('consequence'):
+                L.append(f'- **Consequence:** {d["consequence"]}')
+            extras = []
+            if d.get('companion_involved'):
+                extras.append(f'**Companion:** {d["companion_involved"]}')
+            if d.get('tags'):
+                extras.append(f'**Tags:** {d["tags"]}')
+            if extras:
+                L.append('- ' + '  |  '.join(extras))
+            L.append('')
+
+    # ── Companions ───────────────────────────────────────────────────────────
+    if companions:
+        L.append('## Companions')
+        rows = []
+        for c in companions:
+            c = dict(c)
+            romance = '♥' if c.get('is_romance') else '—'
+            rows.append([c.get('name', '—'), c.get('status', '—'),
+                         str(c.get('relationship_level', 0)), romance])
+        L.append(_md_table(['Name', 'Status', 'Base Influence', 'Romance'], rows))
+        L.append('')
+
+    # ── Outfits ──────────────────────────────────────────────────────────────
+    _SLOT_LABELS = [('head','Head'), ('chest','Chest'), ('legs','Legs'),
+                    ('hands','Hands'), ('feet','Feet'), ('waist','Waist'),
+                    ('wrists','Wrists'), ('main_hand','Main Hand'),
+                    ('off_hand','Off-Hand'), ('dye_module','Dye')]
+
+    if outfits:
+        L.append('## Outfits')
+        for o in outfits:
+            o = dict(o)
+            active_marker = ' *(active)*' if o.get('is_active') else ''
+            L.append(f'### {o.get("outfit_name", "Outfit")} — Slot {o.get("slot_number", 1)}{active_marker}')
+            rows = [(label, o[slot]) for slot, label in _SLOT_LABELS if o.get(slot)]
+            if rows:
+                L.append(_md_table(['Slot', 'Item'], rows))
+            if o.get('notes'):
+                L.append(f'*{o["notes"]}*')
+            L.append('')
+
+    if comp_outfits:
+        L.append('## Companion Outfits')
+        for o in comp_outfits:
+            o = dict(o)
+            L.append(f'### {o.get("companion_name")} — {o.get("outfit_name", "Default")}')
+            rows = [(label, o[slot]) for slot, label in _SLOT_LABELS if o.get(slot)]
+            if rows:
+                L.append(_md_table(['Slot', 'Item'], rows))
+            if o.get('notes'):
+                L.append(f'*{o["notes"]}*')
+            L.append('')
+
+    # ── Inventory Notes ──────────────────────────────────────────────────────
+    if char.get('inventory_notes'):
+        L.append('## Inventory Notes')
+        L.append(char['inventory_notes'])
+        L.append('')
+
+    # ── RP Backstory ─────────────────────────────────────────────────────────
+    rp_fields = [char.get(f) for f in ('rp_homeworld','rp_motivation','rp_personality',
+                                        'rp_relationships','rp_backstory')]
+    if any(rp_fields):
+        L.append('## Backstory')
+        if char.get('rp_homeworld'):
+            L.append(f'**Homeworld:** {char["rp_homeworld"]}')
+        if char.get('rp_motivation'):
+            L.append(f'**Motivation:** {char["rp_motivation"]}')
+        if char.get('rp_personality'):
+            L.append(f'**Personality:** {char["rp_personality"]}')
+        if char.get('rp_relationships'):
+            L.append('')
+            L.append('**Notable Relationships**')
+            L.append(char['rp_relationships'])
+        if char.get('rp_backstory'):
+            L.append('')
+            L.append(char['rp_backstory'])
+        L.append('')
+
+    # ── Session Journal ──────────────────────────────────────────────────────
+    if journal:
+        L.append(f'## Session Journal ({len(journal)} entries)')
+        for entry in journal:
+            e = dict(entry)
+            date_str = f' — {e["session_date"]}' if e.get('session_date') else ''
+            L.append(f'### {e.get("summary", "")}{date_str}')
+            if e.get('notes'):
+                L.append(e['notes'])
+            L.append('')
+
+    # ── Notes ────────────────────────────────────────────────────────────────
+    if char.get('notes'):
+        L.append('## Notes')
+        L.append(char['notes'])
+        L.append('')
+
+    # ── Footer ───────────────────────────────────────────────────────────────
+    generated = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    L.append(hr)
+    L.append(f'*Exported from SWTOR Character Knowledgebase — {generated}*')
+
+    return '\n'.join(L)
+
+
+def export_character_markdown(character_id):
+    """Return UTF-8 encoded markdown bytes for a single character."""
+    md = format_markdown(character_id)
+    if md is None:
+        return None
+    return md.encode('utf-8')
+
+
+def export_all_markdown():
+    """Return UTF-8 encoded markdown bytes for all characters, one per section."""
+    characters = get_all_characters()
+    sections = []
+    for char in characters:
+        md = format_markdown(char['id'])
+        if md:
+            sections.append(md)
+    generated = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    header = f'# SWTOR Character Knowledgebase\n*Exported {generated}*\n\n---\n'
+    return (header + '\n\n---\n\n'.join(sections)).encode('utf-8')
