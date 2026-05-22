@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Roster — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Character Roster</h1>
+  <span class="char-count">{{ characters|length }} character{% if characters|length != 1 %}s{% endif %}</span>
+</div>
+
+{% if characters %}
+<div class="character-grid">
+  {% for char in characters %}
+  {% set light_pct = char.light_side_pts | alignment_pct(char.dark_side_pts) %}
+  {% set net = char.light_side_pts - char.dark_side_pts %}
+  {% set abs_net = net | abs %}
+  {% if abs_net >= 10000 %}{% set rank_tier = 5 %}
+  {% elif abs_net >= 7200 %}{% set rank_tier = 4 %}
+  {% elif abs_net >= 3600 %}{% set rank_tier = 3 %}
+  {% elif abs_net >= 1200 %}{% set rank_tier = 2 %}
+  {% elif abs_net >= 100  %}{% set rank_tier = 1 %}
+  {% else %}{% set rank_tier = 0 %}{% endif %}
+  {% set rank_side = 'light' if net >= 0 else 'dark' %}
+  {% set rank_roman = ['', 'I', 'II', 'III', 'IV', 'V'][rank_tier] %}
+  {% set rank_label = ('Light ' if net >= 0 else 'Dark ') ~ rank_roman if rank_tier > 0 else 'Neutral' %}
+
+  <article class="char-card" data-alignment="{% if light_pct >= 50 %}light{% else %}dark{% endif %}">
+    <header class="char-card-header">
+      <div class="char-name-row">
+        <h2 class="char-name">{{ char.name }}</h2>
+        <span class="rank-badge rank-{{ rank_side }} rank-tier-{{ rank_tier }} rank-badge-sm">{{ rank_label }}</span>
+      </div>
+      <span class="char-class">
+        {{ char.class or '—' }}{% if char.advanced_class %} / {{ char.advanced_class }}{% endif %}
+      </span>
+      {% if char.legacy %}<span class="char-legacy">{{ char.legacy }} Legacy</span>{% endif %}
+    </header>
+
+    <div class="char-meta">
+      <span class="meta-item">{{ char.species or '—' }}</span>
+      <span class="meta-sep">&bull;</span>
+      <span class="meta-item">{{ char.server or '—' }}</span>
+    </div>
+
+    <div class="alignment-bar" title="{{ light_pct }}% Light Side">
+      <div class="alignment-light" style="width: {{ light_pct }}%"></div>
+      <div class="alignment-dark" style="width: {{ 100 - light_pct }}%"></div>
+    </div>
+    <div class="alignment-labels">
+      <span class="label-light">{{ char.light_side_pts }} Light</span>
+      <span class="label-dark">{{ char.dark_side_pts }} Dark</span>
+    </div>
+
+    {% if char.current_expansion %}
+    <p class="char-progress">
+      {{ char.current_expansion }}{% if char.current_chapter %} &mdash; {{ char.current_chapter }}{% endif %}
+    </p>
+    {% endif %}
+
+    <div class="char-card-actions">
+      <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-secondary btn-sm">View</a>
+      <a href="{{ url_for('characters.edit', cid=char.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      <a href="{{ url_for('export.single', character_id=char.id) }}" class="btn btn-ghost btn-sm" title="Export to Standard Notes">&#8595; Export</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">&#9876;</div>
+  <p>No characters yet. Begin your chronicle.</p>
+  <a href="{{ url_for('characters.create') }}" class="btn btn-primary">Create First Character</a>
+</div>
+{% endif %}
+{% endblock %}

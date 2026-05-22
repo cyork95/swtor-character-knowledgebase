@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ form_title }} — {{ char.name }} — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{{ form_title }}</h1>
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; {{ char.name }}</a>
+</div>
+
+<form method="post" action="{{ action_url }}" class="form-card">
+  <div class="form-grid">
+
+    <div class="form-group">
+      <label class="form-label" for="outfit_name">Outfit Name</label>
+      <input class="form-control" type="text" id="outfit_name" name="outfit_name"
+             value="{{ outfit.outfit_name if outfit else '' }}"
+             placeholder="e.g. Imperial Formal, Battle Armour">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="slot_number">Outfit Slot # (1–16)</label>
+      <input class="form-control" type="number" id="slot_number" name="slot_number"
+             value="{{ outfit.slot_number if outfit else 1 }}" min="1" max="16">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label checkbox-label">
+        <input type="checkbox" name="is_active"
+               {% if outfit and outfit.is_active %}checked{% endif %}>
+        Mark as currently active outfit
+      </label>
+    </div>
+
+  </div>
+
+  <h3 class="subsection-title" style="margin-top:1.5rem">Armor Pieces</h3>
+  <div class="outfit-slots-grid">
+
+    {% set slot_labels = {
+      'head':      'Head',
+      'chest':     'Chest',
+      'legs':      'Legs',
+      'hands':     'Hands',
+      'feet':      'Feet',
+      'waist':     'Waist',
+      'wrists':    'Wrists',
+      'main_hand': 'Main Hand',
+      'off_hand':  'Off-Hand',
+      'dye_module':'Dye Module',
+    } %}
+
+    {% for slot in slots %}
+    <div class="form-group">
+      <label class="form-label" for="{{ slot }}">{{ slot_labels[slot] }}</label>
+      <input class="form-control" type="text" id="{{ slot }}" name="{{ slot }}"
+             value="{{ outfit[slot] if outfit and outfit[slot] else '' }}"
+             placeholder="Item name…">
+    </div>
+    {% endfor %}
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="notes">Notes</label>
+      <textarea class="form-control form-textarea" id="notes" name="notes"
+                placeholder="Where each piece came from, set bonuses, etc.">{{ outfit.notes if outfit and outfit.notes else '' }}</textarea>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {% if outfit %}Save Changes{% else %}Save Outfit{% endif %}
+    </button>
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

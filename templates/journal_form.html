@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Log Session — {{ char.name }} — SWTOR Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Log Session</h1>
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; {{ char.name }}</a>
+</div>
+<form method="post" action="{{ url_for('journal.add', cid=char.id) }}" class="form-card">
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label" for="session_date">Session Date</label>
+      <input class="form-control" type="date" id="session_date" name="session_date">
+    </div>
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="summary">Session Summary <span class="required">*</span></label>
+      <input class="form-control" type="text" id="summary" name="summary" required
+             placeholder="e.g. Completed Hoth main arc, started Belsavis">
+    </div>
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="notes">Notes</label>
+      <textarea class="form-control form-textarea" id="notes" name="notes"
+                placeholder="Freeform thoughts, plans, observations from this session..."></textarea>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Log Session</button>
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

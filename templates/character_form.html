@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{{ form_title }} — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{{ form_title }}</h1>
+  {% if char %}
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; Back</a>
+  {% else %}
+  <a href="{{ url_for('characters.dashboard') }}" class="btn btn-ghost btn-sm">&larr; Roster</a>
+  {% endif %}
+</div>
+
+<form method="post" action="{{ action_url }}" class="form-card">
+  <div class="form-grid">
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="name">Character Name <span class="required">*</span></label>
+      <input class="form-control" type="text" id="name" name="name"
+             value="{{ char.name if char else '' }}" required placeholder="e.g. Aria Solaris">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="class">Class</label>
+      <select class="form-control" id="class" name="class">
+        <option value="">— Select Class —</option>
+        {% for c in classes %}
+        <option value="{{ c }}" {% if char and char.class == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="advanced_class">Advanced Class</label>
+      <input class="form-control" type="text" id="advanced_class" name="advanced_class"
+             value="{{ char.advanced_class if char else '' }}" placeholder="e.g. Guardian, Sorcerer">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="species">Species</label>
+      <select class="form-control" id="species" name="species">
+        <option value="">— Select Species —</option>
+        {% for s in species %}
+        <option value="{{ s }}" {% if char and char.species == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="server">Server</label>
+      <select class="form-control" id="server" name="server">
+        <option value="">— Select Server —</option>
+        {% for sv in servers %}
+        <option value="{{ sv }}" {% if char and char.server == sv %}selected{% endif %}>{{ sv }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="current_expansion">Current Expansion</label>
+      <select class="form-control" id="current_expansion" name="current_expansion">
+        <option value="">— Select Expansion —</option>
+        {% for exp in expansions %}
+        <option value="{{ exp }}" {% if char and char.current_expansion == exp %}selected{% endif %}>{{ exp }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="current_chapter">Current Chapter</label>
+      <input class="form-control" type="text" id="current_chapter" name="current_chapter"
+             value="{{ char.current_chapter if char else '' }}" placeholder="e.g. Chapter 3, Prologue">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="light_side_pts">Light Side Points</label>
+      <input class="form-control" type="number" id="light_side_pts" name="light_side_pts"
+             value="{{ char.light_side_pts if char else 0 }}" min="0">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="dark_side_pts">Dark Side Points</label>
+      <input class="form-control" type="number" id="dark_side_pts" name="dark_side_pts"
+             value="{{ char.dark_side_pts if char else 0 }}" min="0">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="notes">Notes</label>
+      <textarea class="form-control form-textarea" id="notes" name="notes"
+                placeholder="Freeform notes about this character...">{{ char.notes if char else '' }}</textarea>
+    </div>
+
+  </div>
+
+  <!-- Crew Skills -->
+  <h3 class="form-section-title">Crew Skills</h3>
+  <div class="form-grid">
+    {% for n in [1, 2, 3] %}
+    <div class="form-group">
+      <label class="form-label">Crew Skill {{ n }}</label>
+      <select class="form-control" name="crew_skill_{{ n }}">
+        <option value="">— None —</option>
+        {% for skill in crew_skills %}
+        <option value="{{ skill }}"
+          {% if char and char['crew_skill_' ~ n] == skill %}selected{% endif %}>
+          {{ skill }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Level</label>
+      <input class="form-control" type="number" name="crew_skill_{{ n }}_level"
+             value="{{ char['crew_skill_' ~ n ~ '_level'] if char and char['crew_skill_' ~ n] else 1 }}"
+             min="1" max="700" placeholder="1–700">
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Inventory Notes -->
+  <h3 class="form-section-title">Inventory Notes</h3>
+  <div class="form-grid">
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="inventory_notes">Notable Items / Cargo Hold</label>
+      <textarea class="form-control form-textarea" id="inventory_notes" name="inventory_notes"
+                placeholder="Rare mounts, stashed gear, legacy weapons, collectibles…">{{ char.inventory_notes if char and char.inventory_notes else '' }}</textarea>
+    </div>
+  </div>
+
+  <!-- RP / Backstory -->
+  <h3 class="form-section-title">RP &amp; Backstory</h3>
+  <div class="form-grid">
+
+    <div class="form-group">
+      <label class="form-label" for="rp_homeworld">Homeworld</label>
+      <input class="form-control" type="text" id="rp_homeworld" name="rp_homeworld"
+             value="{{ char.rp_homeworld if char and char.rp_homeworld else '' }}"
+             placeholder="e.g. Dromund Kaas, Coruscant">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="rp_motivation">Motivation</label>
+      <input class="form-control" type="text" id="rp_motivation" name="rp_motivation"
+             value="{{ char.rp_motivation if char and char.rp_motivation else '' }}"
+             placeholder="e.g. Power, Justice, Survival, Redemption">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="rp_personality">Personality Traits</label>
+      <input class="form-control" type="text" id="rp_personality" name="rp_personality"
+             value="{{ char.rp_personality if char and char.rp_personality else '' }}"
+             placeholder="e.g. Ruthless, Calculating, Loyal to allies">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="rp_relationships">Notable Relationships</label>
+      <textarea class="form-control form-textarea" id="rp_relationships" name="rp_relationships"
+                placeholder="Rivals, mentors, political alliances, enemies outside your companion list…">{{ char.rp_relationships if char and char.rp_relationships else '' }}</textarea>
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="rp_backstory">Backstory</label>
+      <textarea class="form-control form-textarea form-textarea-lg" id="rp_backstory" name="rp_backstory"
+                placeholder="Origin story, defining events before the game begins, personal lore…">{{ char.rp_backstory if char and char.rp_backstory else '' }}</textarea>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {% if char %}Save Changes{% else %}Create Character{% endif %}
+    </button>
+    {% if char %}
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+    {% else %}
+    <a href="{{ url_for('characters.dashboard') }}" class="btn btn-ghost">Cancel</a>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

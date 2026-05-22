@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Add Story Arc — {{ char.name }} — SWTOR Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Add Story Arc</h1>
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; {{ char.name }}</a>
+</div>
+<form method="post" action="{{ url_for('arcs.add', cid=char.id) }}" class="form-card">
+  <div class="form-grid">
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="arc_name">Arc Name <span class="required">*</span></label>
+      <input class="form-control" type="text" id="arc_name" name="arc_name" required
+             placeholder="e.g. Sith Warrior Act I, Rise of the Hutt Cartel">
+    </div>
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="expansion">Expansion</label>
+      <select class="form-control" id="expansion" name="expansion">
+        <option value="">— Select Expansion —</option>
+        {% for exp in expansions %}
+        <option value="{{ exp }}">{{ exp }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Add Arc</button>
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

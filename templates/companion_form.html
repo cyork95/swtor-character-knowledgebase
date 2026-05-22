@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'edit' %}Edit {{ companion.name }}{% else %}Add Companion{% endif %} — {{ char.name }} — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Edit Companion{% else %}Add Companion{% endif %}</h1>
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; {{ char.name }}</a>
+</div>
+
+<form method="post"
+      action="{% if action == 'edit' %}{{ url_for('companions.edit', cid=char.id, coid=companion.id) }}{% else %}{{ url_for('companions.add', cid=char.id) }}{% endif %}"
+      class="form-card">
+  <div class="form-grid">
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="name">Companion Name <span class="required">*</span></label>
+      <input class="form-control" type="text" id="name" name="name" required
+             value="{{ companion.name if companion else '' }}"
+             placeholder="e.g. Kira Carsen">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="status">Status</label>
+      <select class="form-control" id="status" name="status">
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if companion and companion.status == s %}selected{% endif %}>{{ s | capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="relationship_level">Influence Level</label>
+      <input class="form-control" type="number" id="relationship_level" name="relationship_level"
+             value="{{ companion.relationship_level if companion else 0 }}" min="0" max="100">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label checkbox-label">
+        <input type="checkbox" name="is_romance" value="on"
+               {% if companion and companion.is_romance %}checked{% endif %}>
+        Romance companion
+      </label>
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="notable_interactions">Notable Interactions</label>
+      <textarea class="form-control form-textarea" id="notable_interactions" name="notable_interactions"
+                placeholder="Key story moments, relationship notes...">{{ companion.notable_interactions if companion else '' }}</textarea>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {% if action == 'edit' %}Save Changes{% else %}Add Companion{% endif %}
+    </button>
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

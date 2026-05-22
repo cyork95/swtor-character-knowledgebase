@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+{% block title %}{{ char.name }} — SWTOR Tracker{% endblock %}
+
+{% block content %}
+{% set light_pct = char.light_side_pts | alignment_pct(char.dark_side_pts) %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ char.name }}</h1>
+    <p class="char-subtitle">
+      {{ char.class or '—' }}{% if char.advanced_class %} / {{ char.advanced_class }}{% endif %}
+      {% if char.species %} &bull; {{ char.species }}{% endif %}
+      {% if char.server %} &bull; {{ char.server }}{% endif %}
+      {% if char.legacy %} &bull; <em>{{ char.legacy }} Legacy</em>{% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('characters.dashboard') }}" class="btn btn-ghost btn-sm">&larr; Roster</a>
+</div>
+
+<!-- Alignment Banner + Rank -->
+<div class="alignment-banner">
+  <div class="alignment-rank-row">
+    <span class="rank-badge rank-{{ rank.side | lower }} rank-tier-{{ rank.tier }}">
+      {{ rank.rank }}
+    </span>
+    <span class="rank-net">
+      Net {{ '+' if rank.net >= 0 else '' }}{{ rank.net }} pts
+    </span>
+  </div>
+  <div class="alignment-bar alignment-bar-lg" title="{{ light_pct }}% Light Side">
+    <div class="alignment-light" style="width: {{ light_pct }}%"></div>
+    <div class="alignment-dark"  style="width: {{ 100 - light_pct }}%"></div>
+  </div>
+  <div class="alignment-labels">
+    <span class="label-light">&#9670; {{ char.light_side_pts }} Light Side</span>
+    <span class="alignment-pct">{{ light_pct }}% Light</span>
+    <span class="label-dark">{{ char.dark_side_pts }} Dark Side &#9670;</span>
+  </div>
+</div>
+
+<!-- Moment of No Return -->
+{% if moment %}
+<div class="moment-banner moment-{{ moment.side }}">
+  <span class="moment-icon">&#9889;</span>
+  <div class="moment-text">
+    <strong>Point of No Return</strong> — Decision #{{ moment.decision_index }}
+    ({{ moment.timestamp }}): crossed into
+    <span class="moment-side-label">{{ moment.side | capitalize }} II</span>
+    with net {{ '+' if moment.net_at_crossing >= 0 else '' }}{{ moment.net_at_crossing }} and never looked back.
+    <em>{{ moment.label }}</em>
+  </div>
+</div>
+{% endif %}
+
+<!-- Alignment History Chart -->
+{% if history and history|length > 1 %}
+<div class="section-card chart-card">
+  <h2 class="section-title">Alignment History</h2>
+  {% set pts   = history | map(attribute='net') | list %}
+  {% set min_v = pts | min %}
+  {% set max_v = pts | max %}
+  {% set range_v = [max_v - min_v, 1] | max %}
+  {% set w = 600 %}
+  {% set h = 120 %}
+  {% set pad = 10 %}
+  {% set inner_w = w - pad * 2 %}
+  {% set inner_h = h - pad * 2 %}
+  {% set zero_y  = pad + inner_h - ((0 - min_v) / range_v * inner_h) %}
+
+  <div class="chart-wrap">
+    <svg viewBox="0 0 {{ w }} {{ h }}" class="alignment-chart" role="img" aria-label="Alignment history chart">
+      <!-- Zero baseline -->
+      <line x1="{{ pad }}" y1="{{ zero_y | round }}"
+            x2="{{ w - pad }}" y2="{{ zero_y | round }}"
+            class="chart-zero-line"/>
+
+      <!-- Light / dark threshold lines at ±1200 -->
+      {% for threshold in [1200, -1200] %}
+      {% set ty = pad + inner_h - ((threshold - min_v) / range_v * inner_h) %}
+      {% if ty > pad and ty < h - pad %}
+      <line x1="{{ pad }}" y1="{{ ty | round }}"
+            x2="{{ w - pad }}" y2="{{ ty | round }}"
+            class="chart-threshold-line"/>
+      {% endif %}
+      {% endfor %}
+
+      <!-- Polyline -->
+      {% set points_list = [] %}
+      {% for point in history %}
+        {% set xi = pad + (point.index - 1) / ([history|length - 1, 1]|max) * inner_w %}
+        {% set yi = pad + inner_h - ((point.net - min_v) / range_v * inner_h) %}
+        {% set _ = points_list.append(xi|round ~ ',' ~ yi|round) %}
+      {% endfor %}
+      <polyline points="{{ points_list | join(' ') }}"
+                class="chart-line chart-line-{{ 'light' if history[-1].net >= 0 else 'dark' }}"
+                fill="none"/>
+
+      <!-- Dots for last and first point -->
+      {% set fp = history[0] %}
+      {% set lp = history[-1] %}
+      {% set fx = pad %}
+      {% set fy = pad + inner_h - ((fp.net - min_v) / range_v * inner_h) %}
+      {% set lx = w - pad %}
+      {% set ly = pad + inner_h - ((lp.net - min_v) / range_v * inner_h) %}
+      <circle cx="{{ fx | round }}" cy="{{ fy | round }}" r="3" class="chart-dot"/>
+      <circle cx="{{ lx | round }}" cy="{{ ly | round }}" r="4"
+              class="chart-dot chart-dot-{{ 'light' if lp.net >= 0 else 'dark' }}"/>
+    </svg>
+    <div class="chart-legend">
+      <span class="chart-legend-item">
+        <span class="chart-dot-swatch chart-dot-swatch-light"></span> Light
+      </span>
+      <span class="chart-legend-item">
+        <span class="chart-dot-swatch chart-dot-swatch-dark"></span> Dark
+      </span>
+      <span class="chart-legend-item chart-legend-muted">
+        — — Tier II threshold (±1200)
+      </span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="detail-layout">
+  <div class="detail-main">
+
+    <!-- Story Progress + Arcs -->
+    <section class="section-card">
+      <h2 class="section-title">Story Progress</h2>
+      <dl class="info-grid">
+        <dt>Current Expansion</dt><dd>{{ char.current_expansion or '—' }}</dd>
+        <dt>Current Chapter</dt><dd>{{ char.current_chapter or '—' }}</dd>
+      </dl>
+
+      <h3 class="subsection-title">Completed Arcs</h3>
+      {% if arcs %}
+      <ul class="arc-list">
+        {% for arc in arcs %}
+        <li>
+          <span class="arc-name">{{ arc.arc_name }}</span>
+          <span class="arc-expansion">{{ arc.expansion }}</span>
+          <form method="post"
+                action="{{ url_for('arcs.remove', cid=char.id, aid=arc.id) }}"
+                class="inline-form"
+                data-confirm="Remove arc '{{ arc.arc_name }}'?">
+            <button type="submit" class="btn-icon btn-danger-icon" title="Remove arc">&times;</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-text">No arcs logged yet.</p>
+      {% endif %}
+      <div class="section-action">
+        <a href="{{ url_for('arcs.add', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Add Arc</a>
+      </div>
+    </section>
+
+    <!-- Story Decisions with Search + Tag Filter -->
+    <section class="section-card" id="decisions-section">
+      <details open>
+        <summary class="section-title">
+          Story Decisions
+          <span class="count-badge" id="decisions-visible-count">{{ decisions|length }}</span>
+        </summary>
+
+        <!-- Search + Tag Filter Controls -->
+        <div class="decision-controls">
+          <input type="text" id="decision-search" class="form-control search-input"
+                 placeholder="Search decisions…" autocomplete="off">
+          {% if all_tags %}
+          <div class="tag-filter-bar">
+            <button class="tag-filter-btn active" data-tag="">All</button>
+            {% for tag in all_tags %}
+            <button class="tag-filter-btn" data-tag="{{ tag }}">{{ tag }}</button>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if decisions %}
+        <div class="decisions-list" id="decisions-list">
+          {% for dec in decisions %}
+          <div class="decision-entry decision-{{ dec.alignment_impact | impact_class }}"
+               data-tags="{{ dec.tags or '' }}"
+               data-text="{{ dec.choice }} {{ dec.context }} {{ dec.consequence }} {{ dec.companion_involved }}">
+            <div class="decision-header">
+              <span class="badge badge-{{ dec.alignment_impact | impact_class }}">{{ dec.alignment_impact }}</span>
+              <span class="decision-pts">+{{ dec.alignment_points }} pts</span>
+              <span class="decision-timestamp">{{ dec.timestamp[:10] if dec.timestamp else '' }}</span>
+            </div>
+            <p class="decision-choice">{{ dec.choice }}</p>
+            {% if dec.context %}
+            <p class="decision-meta"><strong>Context:</strong> {{ dec.context }}</p>
+            {% endif %}
+            {% if dec.consequence %}
+            <p class="decision-meta"><strong>Consequence:</strong> {{ dec.consequence }}</p>
+            {% endif %}
+            <div class="decision-footer">
+              {% if dec.companion_involved %}
+              <span class="decision-companion">&#9670; {{ dec.companion_involved }}</span>
+              {% endif %}
+              {% if dec.tags %}
+              <span class="decision-tags">
+                {% for tag in dec.tags.split(', ') %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+              </span>
+              {% endif %}
+              <form method="post"
+                    action="{{ url_for('decisions.remove', cid=char.id, did=dec.id) }}"
+                    class="inline-form" data-confirm="Remove this decision?">
+                <button type="submit" class="btn-icon btn-danger-icon" title="Remove">&times;</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="no-results-msg" id="no-decisions-msg" style="display:none">
+          No decisions match your search or filter.
+        </p>
+        {% else %}
+        <p class="empty-text">No decisions logged yet.</p>
+        {% endif %}
+
+        <div class="section-action">
+          <a href="{{ url_for('decisions.log', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Log Decision</a>
+        </div>
+      </details>
+    </section>
+
+    <!-- Session Journal -->
+    <section class="section-card">
+      <details>
+        <summary class="section-title">
+          Session Journal
+          <span class="count-badge">{{ journal|length }}</span>
+        </summary>
+        {% if journal %}
+        <div class="journal-list">
+          {% for entry in journal %}
+          <div class="journal-entry">
+            <div class="journal-header">
+              {% if entry.session_date %}
+              <span class="journal-date">{{ entry.session_date }}</span>
+              {% endif %}
+              <span class="journal-summary">{{ entry.summary }}</span>
+              <form method="post"
+                    action="{{ url_for('journal.remove', cid=char.id, jid=entry.id) }}"
+                    class="inline-form" data-confirm="Remove this journal entry?">
+                <button type="submit" class="btn-icon btn-danger-icon">&times;</button>
+              </form>
+            </div>
+            {% if entry.notes %}
+            <p class="journal-notes">{{ entry.notes }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-text">No session entries yet.</p>
+        {% endif %}
+        <div class="section-action">
+          <a href="{{ url_for('journal.add', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Log Session</a>
+        </div>
+      </details>
+    </section>
+
+    <!-- Notes -->
+    {% if char.notes %}
+    <section class="section-card">
+      <h2 class="section-title">Notes</h2>
+      <p class="notes-text">{{ char.notes }}</p>
+    </section>
+    {% endif %}
+
+    <!-- Planet Progress -->
+    <section class="section-card">
+      <details>
+        <summary class="section-title">
+          Planet Progress
+          <span class="count-badge">{{ planet_stats.complete }}/{{ planet_stats.total }}</span>
+        </summary>
+        {% if planets %}
+        <div class="planet-list">
+          {% for planet in planets %}
+          <div class="planet-row planet-status-{{ planet.status }}">
+            <div class="planet-info">
+              <span class="planet-name">{{ planet.planet_name }}</span>
+              <span class="planet-status-badge status-{{ planet.status }}">
+                {% if planet.status == 'complete' %}&#10003; Complete
+                {% elif planet.status == 'in_progress' %}&#9654; In Progress
+                {% else %}&#9675; Not Started{% endif %}
+              </span>
+              {% if planet.bonus_series %}<span class="planet-tag">Bonus &#10003;</span>{% endif %}
+              {% if planet.datacrons %}<span class="planet-tag">Datacrons &#10003;</span>{% endif %}
+            </div>
+            {% if planet.notes %}<p class="planet-notes">{{ planet.notes }}</p>{% endif %}
+            <div class="planet-actions">
+              <a href="{{ url_for('planets.edit', cid=char.id, pid=planet.id) }}" class="btn btn-ghost btn-xs">Edit</a>
+              <form method="post" action="{{ url_for('planets.remove', cid=char.id, pid=planet.id) }}"
+                    class="inline-form" data-confirm="Remove {{ planet.planet_name }}?">
+                <button type="submit" class="btn-icon btn-danger-icon">&times;</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-text">No planets logged yet.</p>
+        {% endif %}
+        <div class="section-action">
+          <a href="{{ url_for('planets.add', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Add Planet</a>
+        </div>
+      </details>
+    </section>
+
+    <!-- Inventory Notes -->
+    {% if char.inventory_notes %}
+    <section class="section-card">
+      <h2 class="section-title">Inventory Notes</h2>
+      <p class="notes-text">{{ char.inventory_notes }}</p>
+      <div class="section-action">
+        <a href="{{ url_for('characters.edit', cid=char.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- RP Backstory -->
+    {% if char.rp_backstory or char.rp_homeworld or char.rp_motivation %}
+    <section class="section-card rp-card">
+      <h2 class="section-title">Backstory</h2>
+      <div class="rp-meta-row">
+        {% if char.rp_homeworld %}
+        <span class="rp-meta-item"><span class="rp-label">Homeworld</span> {{ char.rp_homeworld }}</span>
+        {% endif %}
+        {% if char.rp_motivation %}
+        <span class="rp-meta-item"><span class="rp-label">Motivation</span> {{ char.rp_motivation }}</span>
+        {% endif %}
+        {% if char.rp_personality %}
+        <span class="rp-meta-item"><span class="rp-label">Personality</span> {{ char.rp_personality }}</span>
+        {% endif %}
+      </div>
+      {% if char.rp_relationships %}
+      <div class="rp-section">
+        <h4 class="rp-subhead">Notable Relationships</h4>
+        <p class="rp-text">{{ char.rp_relationships }}</p>
+      </div>
+      {% endif %}
+      {% if char.rp_backstory %}
+      <div class="rp-section">
+        <p class="rp-text">{{ char.rp_backstory }}</p>
+      </div>
+      {% endif %}
+      <div class="section-action">
+        <a href="{{ url_for('characters.edit', cid=char.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      </div>
+    </section>
+    {% endif %}
+
+  </div><!-- /detail-main -->
+
+  <div class="detail-sidebar">
+
+    <!-- Companions + Influence -->
+    <section class="section-card">
+      <h2 class="section-title">
+        Companions <span class="count-badge">{{ companions|length }}</span>
+      </h2>
+      {% if companions %}
+      <div class="companions-list">
+        {% for comp in companions %}
+        {% set inf_total = inf_totals.get(comp.name, 0) %}
+        <div class="companion-row">
+          <div class="companion-info">
+            <span class="companion-name">
+              {{ comp.name }}
+              {% if comp.is_romance %}<span class="romance-icon" title="Romance">&#9829;</span>{% endif %}
+            </span>
+            <span class="badge badge-status-{{ comp.status }}">{{ comp.status }}</span>
+          </div>
+          <div class="companion-influence-row">
+            <span class="influence-label">Base infl.</span>
+            <span class="influence-value">{{ comp.relationship_level }}</span>
+            {% if inf_total != 0 %}
+            <span class="influence-delta {{ 'influence-pos' if inf_total > 0 else 'influence-neg' }}">
+              {{ '+' if inf_total > 0 else '' }}{{ inf_total }} logged
+            </span>
+            {% endif %}
+          </div>
+          {% if comp.notable_interactions %}
+          <p class="companion-notes">{{ comp.notable_interactions }}</p>
+          {% endif %}
+          <div class="companion-actions">
+            <a href="{{ url_for('influence.add', cid=char.id, companion=comp.name) }}"
+               class="btn btn-ghost btn-xs">+ Infl.</a>
+            <a href="{{ url_for('companions.edit', cid=char.id, coid=comp.id) }}"
+               class="btn btn-ghost btn-xs">Edit</a>
+            <form method="post"
+                  action="{{ url_for('companions.remove', cid=char.id, coid=comp.id) }}"
+                  class="inline-form" data-confirm="Remove {{ comp.name }}?">
+              <button type="submit" class="btn btn-danger btn-xs">Remove</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-text">No companions added.</p>
+      {% endif %}
+      <div class="section-action">
+        <a href="{{ url_for('companions.add', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Add Companion</a>
+      </div>
+    </section>
+
+    <!-- Crew Skills -->
+    {% if char.crew_skill_1 or char.crew_skill_2 or char.crew_skill_3 %}
+    <section class="section-card">
+      <h2 class="section-title">Crew Skills</h2>
+      <div class="crew-skills-list">
+        {% for n in [1, 2, 3] %}
+        {% set skill = char['crew_skill_' ~ n] %}
+        {% set level = char['crew_skill_' ~ n ~ '_level'] %}
+        {% if skill %}
+        <div class="crew-skill-row">
+          <span class="crew-skill-name">{{ skill }}</span>
+          <span class="crew-skill-level">Lvl {{ level or 1 }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Character Outfits -->
+    <section class="section-card">
+      <details>
+        <summary class="section-title">
+          Outfits <span class="count-badge">{{ outfits|length }}</span>
+        </summary>
+        {% if outfits %}
+        <div class="outfits-list">
+          {% for outfit in outfits %}
+          <div class="outfit-card {% if outfit.is_active %}outfit-active{% endif %}">
+            <div class="outfit-header">
+              <span class="outfit-name">
+                {% if outfit.is_active %}<span class="outfit-active-dot" title="Active">&#9679;</span>{% endif %}
+                {{ outfit.outfit_name }}
+              </span>
+              <span class="outfit-slot-num">Slot {{ outfit.slot_number }}</span>
+            </div>
+            <div class="outfit-slots">
+              {% for slot, label in [('head','Head'),('chest','Chest'),('legs','Legs'),('hands','Hands'),('feet','Feet'),('waist','Waist'),('wrists','Wrists'),('main_hand','MH'),('off_hand','OH'),('dye_module','Dye')] %}
+              {% if outfit[slot] %}
+              <span class="outfit-piece"><span class="outfit-piece-label">{{ label }}</span> {{ outfit[slot] }}</span>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% if outfit.notes %}<p class="outfit-notes">{{ outfit.notes }}</p>{% endif %}
+            <div class="outfit-actions">
+              {% if not outfit.is_active %}
+              <form method="post" action="{{ url_for('outfits.activate', cid=char.id, oid=outfit.id) }}" class="inline-form">
+                <button type="submit" class="btn btn-ghost btn-xs">Set Active</button>
+              </form>
+              {% endif %}
+              <a href="{{ url_for('outfits.edit', cid=char.id, oid=outfit.id) }}" class="btn btn-ghost btn-xs">Edit</a>
+              <form method="post" action="{{ url_for('outfits.remove', cid=char.id, oid=outfit.id) }}"
+                    class="inline-form" data-confirm="Remove outfit '{{ outfit.outfit_name }}'?">
+                <button type="submit" class="btn-icon btn-danger-icon">&times;</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-text">No outfits saved yet.</p>
+        {% endif %}
+        <div class="section-action">
+          <a href="{{ url_for('outfits.add', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Add Outfit</a>
+        </div>
+      </details>
+    </section>
+
+    <!-- Companion Outfits -->
+    {% if companion_outfits %}
+    <section class="section-card">
+      <details>
+        <summary class="section-title">
+          Companion Outfits <span class="count-badge">{{ companion_outfits|length }}</span>
+        </summary>
+        <div class="outfits-list">
+          {% for outfit in companion_outfits %}
+          <div class="outfit-card">
+            <div class="outfit-header">
+              <span class="outfit-name">{{ outfit.companion_name }}</span>
+              <span class="outfit-slot-num">{{ outfit.outfit_name }}</span>
+            </div>
+            <div class="outfit-slots">
+              {% for slot, label in [('head','Head'),('chest','Chest'),('legs','Legs'),('hands','Hands'),('feet','Feet'),('waist','Waist'),('wrists','Wrists'),('main_hand','MH'),('off_hand','OH'),('dye_module','Dye')] %}
+              {% if outfit[slot] %}
+              <span class="outfit-piece"><span class="outfit-piece-label">{{ label }}</span> {{ outfit[slot] }}</span>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% if outfit.notes %}<p class="outfit-notes">{{ outfit.notes }}</p>{% endif %}
+            <div class="outfit-actions">
+              <a href="{{ url_for('outfits.edit_companion', cid=char.id, oid=outfit.id) }}" class="btn btn-ghost btn-xs">Edit</a>
+              <form method="post" action="{{ url_for('outfits.remove_companion', cid=char.id, oid=outfit.id) }}"
+                    class="inline-form" data-confirm="Remove {{ outfit.companion_name }}'s outfit?">
+                <button type="submit" class="btn-icon btn-danger-icon">&times;</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="section-action">
+          <a href="{{ url_for('outfits.add_companion', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Add Companion Outfit</a>
+        </div>
+      </details>
+    </section>
+    {% else %}
+    <div class="section-action" style="padding: 0 0 0.5rem">
+      <a href="{{ url_for('outfits.add_companion', cid=char.id) }}" class="btn btn-ghost btn-sm">+ Companion Outfit</a>
+    </div>
+    {% endif %}
+
+    <!-- Titles & Achievements -->
+    <section class="section-card">
+      <h2 class="section-title">
+        Titles &amp; Achievements <span class="count-badge">{{ titles|length }}</span>
+      </h2>
+      {% if titles %}
+      <div class="titles-list">
+        {% for t in titles %}
+        <div class="title-row">
+          <span class="title-text">{{ t.title }}</span>
+          {% if t.earned_at %}<span class="title-earned">{{ t.earned_at }}</span>{% endif %}
+          {% if t.notes %}<p class="title-notes">{{ t.notes }}</p>{% endif %}
+          <form method="post" action="{{ url_for('titles.remove', cid=char.id, tid=t.id) }}"
+                class="inline-form" data-confirm="Remove title '{{ t.title }}'?">
+            <button type="submit" class="btn-icon btn-danger-icon">&times;</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-text">No titles recorded yet.</p>
+      {% endif %}
+      <div class="section-action">
+        <a href="{{ url_for('titles.add', cid=char.id) }}" class="btn btn-secondary btn-sm">+ Add Title</a>
+      </div>
+    </section>
+
+    <!-- Influence Log -->
+    {% if influence %}
+    <section class="section-card">
+      <details>
+        <summary class="section-title">
+          Influence Log <span class="count-badge">{{ influence|length }}</span>
+        </summary>
+        <div class="influence-log-list">
+          {% for entry in influence %}
+          <div class="influence-entry">
+            <span class="influence-companion">{{ entry.companion_name }}</span>
+            <span class="influence-change {{ 'influence-pos' if entry.influence_change > 0 else 'influence-neg' }}">
+              {{ '+' if entry.influence_change > 0 else '' }}{{ entry.influence_change }}
+            </span>
+            {% if entry.source %}<span class="influence-source">{{ entry.source }}</span>{% endif %}
+            {% if entry.notes %}<span class="influence-notes">{{ entry.notes }}</span>{% endif %}
+            <form method="post"
+                  action="{{ url_for('influence.remove', cid=char.id, eid=entry.id) }}"
+                  class="inline-form" data-confirm="Remove this influence entry?">
+              <button type="submit" class="btn-icon btn-danger-icon">&times;</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+      </details>
+    </section>
+    {% endif %}
+
+    <!-- Actions -->
+    <section class="section-card">
+      <h2 class="section-title">Actions</h2>
+      <div class="action-list">
+        <a href="{{ url_for('characters.edit', cid=char.id) }}" class="btn btn-secondary">Edit Character</a>
+        <a href="{{ url_for('decisions.log', cid=char.id) }}" class="btn btn-secondary">Log Decision</a>
+        <a href="{{ url_for('companions.add', cid=char.id) }}" class="btn btn-secondary">Add Companion</a>
+        <a href="{{ url_for('arcs.add', cid=char.id) }}" class="btn btn-secondary">Add Story Arc</a>
+        <a href="{{ url_for('journal.add', cid=char.id) }}" class="btn btn-secondary">Log Session</a>
+        <a href="{{ url_for('influence.add', cid=char.id) }}" class="btn btn-secondary">Log Influence</a>
+        <a href="{{ url_for('outfits.add', cid=char.id) }}" class="btn btn-secondary">Add Outfit</a>
+        <a href="{{ url_for('outfits.add_companion', cid=char.id) }}" class="btn btn-secondary">Add Companion Outfit</a>
+        <a href="{{ url_for('titles.add', cid=char.id) }}" class="btn btn-secondary">Add Title</a>
+        <a href="{{ url_for('planets.add', cid=char.id) }}" class="btn btn-secondary">Add Planet</a>
+        <a href="{{ url_for('export.single', character_id=char.id) }}" class="btn btn-ghost">&#8595; Export to Standard Notes</a>
+        <form method="post"
+              action="{{ url_for('characters.delete', cid=char.id) }}"
+              class="inline-form"
+              data-confirm="Permanently delete {{ char.name }} and all data? This cannot be undone.">
+          <button type="submit" class="btn btn-danger">Delete Character</button>
+        </form>
+      </div>
+    </section>
+
+  </div><!-- /detail-sidebar -->
+</div><!-- /detail-layout -->
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Timeline — SWTOR Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Decision Timeline</h1>
+  <span class="char-count">{{ entries|length }} decisions across all characters</span>
+</div>
+
+{% if entries %}
+<div class="timeline-feed">
+  {% set ns = namespace(last_date='') %}
+  {% for entry in entries %}
+  {% set entry_date = entry.timestamp[:10] if entry.timestamp else 'Unknown' %}
+
+  {% if entry_date != ns.last_date %}
+  <div class="timeline-date-marker">{{ entry_date }}</div>
+  {% set ns.last_date = entry_date %}
+  {% endif %}
+
+  <div class="timeline-entry timeline-{{ entry.alignment_impact | impact_class }}">
+    <div class="timeline-meta">
+      <a href="{{ url_for('characters.detail', cid=entry.char_id) }}" class="timeline-char-link">
+        {{ entry.char_name }}
+      </a>
+      <span class="timeline-class">{{ entry.char_class or '' }}</span>
+      <span class="badge badge-{{ entry.alignment_impact | impact_class }} badge-sm">
+        {{ entry.alignment_impact }}
+      </span>
+      <span class="timeline-pts">+{{ entry.alignment_points }} pts</span>
+      {% if entry.companion_involved %}
+      <span class="timeline-companion">&#9670; {{ entry.companion_involved }}</span>
+      {% endif %}
+    </div>
+    <p class="timeline-choice">{{ entry.choice }}</p>
+    {% if entry.context %}
+    <p class="timeline-context">{{ entry.context }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No decisions logged yet across any character.</p>
+  <a href="{{ url_for('characters.dashboard') }}" class="btn btn-primary">Go to Roster</a>
+</div>
+{% endif %}
+{% endblock %}

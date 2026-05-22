@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background tile -->
+  <rect width="32" height="32" rx="5" fill="#0a0a0f"/>
+
+  <!-- Outer gold ring -->
+  <circle cx="16" cy="16" r="13.5" fill="none" stroke="#c9a227" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- Light-side half (upper) -->
+  <clipPath id="upper">
+    <rect x="0" y="0" width="32" height="16"/>
+  </clipPath>
+  <polygon points="16,3 29,16 16,16 3,16"
+           fill="#4fc3f7" opacity="0.88" clip-path="url(#upper)"/>
+
+  <!-- Dark-side half (lower) -->
+  <clipPath id="lower">
+    <rect x="0" y="16" width="32" height="16"/>
+  </clipPath>
+  <polygon points="16,29 29,16 16,16 3,16"
+           fill="#ef5350" opacity="0.88" clip-path="url(#lower)"/>
+
+  <!-- Gold diamond outline -->
+  <polygon points="16,3 29,16 16,29 3,16"
+           fill="none" stroke="#c9a227" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Horizontal dividing line (equator) in gold -->
+  <line x1="3" y1="16" x2="29" y2="16" stroke="#c9a227" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- Center gem -->
+  <circle cx="16" cy="16" r="2.2" fill="#c9a227"/>
+  <circle cx="16" cy="16" r="1" fill="#0a0a0f"/>
+</svg>

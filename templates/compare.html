@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Compare Characters — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Character Comparison</h1>
+</div>
+
+<!-- Selector Form -->
+<form method="get" action="{{ url_for('characters.compare') }}" class="compare-selector">
+  <div class="compare-selects">
+    <div class="form-group">
+      <label class="form-label">Character A</label>
+      <select class="form-control" name="a" onchange="this.form.submit()">
+        <option value="">— Select —</option>
+        {% for c in all_chars %}
+        <option value="{{ c.id }}" {% if cid_a == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="compare-vs">VS</div>
+    <div class="form-group">
+      <label class="form-label">Character B</label>
+      <select class="form-control" name="b" onchange="this.form.submit()">
+        <option value="">— Select —</option>
+        {% for c in all_chars %}
+        <option value="{{ c.id }}" {% if cid_b == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</form>
+
+{% if char_a or char_b %}
+<div class="compare-grid">
+
+  <!-- ── Column A ── -->
+  <div class="compare-col {% if not char_a %}compare-col-empty{% endif %}">
+    {% if char_a %}
+    {% set light_pct_a = char_a.light_side_pts | alignment_pct(char_a.dark_side_pts) %}
+    <div class="compare-header compare-header-{{ rank_a.side | lower }}">
+      <h2 class="char-name">{{ char_a.name }}</h2>
+      {% if char_a.legacy %}<span class="compare-legacy">{{ char_a.legacy }} Legacy</span>{% endif %}
+      <p class="char-class">{{ char_a.class or '—' }}{% if char_a.advanced_class %} / {{ char_a.advanced_class }}{% endif %}</p>
+      <span class="rank-badge rank-{{ rank_a.side | lower }} rank-tier-{{ rank_a.tier }}">{{ rank_a.rank }}</span>
+    </div>
+
+    <div class="compare-stat-block">
+      <div class="alignment-bar alignment-bar-lg">
+        <div class="alignment-light" style="width:{{ light_pct_a }}%"></div>
+        <div class="alignment-dark"  style="width:{{ 100 - light_pct_a }}%"></div>
+      </div>
+      <div class="alignment-labels">
+        <span class="label-light">{{ char_a.light_side_pts }} Light</span>
+        <span class="label-dark">{{ char_a.dark_side_pts }} Dark</span>
+      </div>
+    </div>
+
+    <table class="compare-stats">
+      <tr><th>Species</th><td>{{ char_a.species or '—' }}</td></tr>
+      <tr><th>Server</th><td>{{ char_a.server or '—' }}</td></tr>
+      <tr><th>Expansion</th><td>{{ char_a.current_expansion or '—' }}</td></tr>
+      <tr><th>Chapter</th><td>{{ char_a.current_chapter or '—' }}</td></tr>
+      <tr><th>Decisions</th><td>{{ decisions_a|length }}</td></tr>
+      <tr><th>Light Choices</th><td class="stat-light">{{ decisions_a | selectattr('alignment_impact','eq','LIGHT') | list | length }}</td></tr>
+      <tr><th>Dark Choices</th><td class="stat-dark">{{ decisions_a | selectattr('alignment_impact','eq','DARK') | list | length }}</td></tr>
+      <tr><th>Companions</th><td>{{ companions_a|length }}</td></tr>
+      <tr><th>Arcs Done</th><td>{{ arcs_a|length }}</td></tr>
+    </table>
+
+    {% if companions_a %}
+    <h3 class="compare-subheading">Companions</h3>
+    <ul class="compare-list">
+      {% for comp in companions_a %}
+      <li>
+        <span class="companion-name">{{ comp.name }}</span>
+        <span class="badge badge-status-{{ comp.status }}">{{ comp.status }}</span>
+        <span class="compare-influence">Infl. {{ comp.relationship_level }}</span>
+        {% if comp.is_romance %}<span class="romance-icon">&#9829;</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% else %}
+    <div class="compare-placeholder">Select Character A above</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Column B ── -->
+  <div class="compare-col {% if not char_b %}compare-col-empty{% endif %}">
+    {% if char_b %}
+    {% set light_pct_b = char_b.light_side_pts | alignment_pct(char_b.dark_side_pts) %}
+    <div class="compare-header compare-header-{{ rank_b.side | lower }}">
+      <h2 class="char-name">{{ char_b.name }}</h2>
+      {% if char_b.legacy %}<span class="compare-legacy">{{ char_b.legacy }} Legacy</span>{% endif %}
+      <p class="char-class">{{ char_b.class or '—' }}{% if char_b.advanced_class %} / {{ char_b.advanced_class }}{% endif %}</p>
+      <span class="rank-badge rank-{{ rank_b.side | lower }} rank-tier-{{ rank_b.tier }}">{{ rank_b.rank }}</span>
+    </div>
+
+    <div class="compare-stat-block">
+      <div class="alignment-bar alignment-bar-lg">
+        <div class="alignment-light" style="width:{{ light_pct_b }}%"></div>
+        <div class="alignment-dark"  style="width:{{ 100 - light_pct_b }}%"></div>
+      </div>
+      <div class="alignment-labels">
+        <span class="label-light">{{ char_b.light_side_pts }} Light</span>
+        <span class="label-dark">{{ char_b.dark_side_pts }} Dark</span>
+      </div>
+    </div>
+
+    <table class="compare-stats">
+      <tr><th>Species</th><td>{{ char_b.species or '—' }}</td></tr>
+      <tr><th>Server</th><td>{{ char_b.server or '—' }}</td></tr>
+      <tr><th>Expansion</th><td>{{ char_b.current_expansion or '—' }}</td></tr>
+      <tr><th>Chapter</th><td>{{ char_b.current_chapter or '—' }}</td></tr>
+      <tr><th>Decisions</th><td>{{ decisions_b|length }}</td></tr>
+      <tr><th>Light Choices</th><td class="stat-light">{{ decisions_b | selectattr('alignment_impact','eq','LIGHT') | list | length }}</td></tr>
+      <tr><th>Dark Choices</th><td class="stat-dark">{{ decisions_b | selectattr('alignment_impact','eq','DARK') | list | length }}</td></tr>
+      <tr><th>Companions</th><td>{{ companions_b|length }}</td></tr>
+      <tr><th>Arcs Done</th><td>{{ arcs_b|length }}</td></tr>
+    </table>
+
+    {% if companions_b %}
+    <h3 class="compare-subheading">Companions</h3>
+    <ul class="compare-list">
+      {% for comp in companions_b %}
+      <li>
+        <span class="companion-name">{{ comp.name }}</span>
+        <span class="badge badge-status-{{ comp.status }}">{{ comp.status }}</span>
+        <span class="compare-influence">Infl. {{ comp.relationship_level }}</span>
+        {% if comp.is_romance %}<span class="romance-icon">&#9829;</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% else %}
+    <div class="compare-placeholder">Select Character B above</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SWTOR Tracker{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{{ url_for('characters.dashboard') }}" class="site-logo">
+        <span class="logo-icon">&#9876;</span> SWTOR Tracker
+      </a>
+      <nav class="site-nav">
+        <a href="{{ url_for('characters.dashboard') }}"
+           class="nav-link{% if request.endpoint == 'characters.dashboard' %} active{% endif %}">
+          Roster
+        </a>
+        <a href="{{ url_for('characters.query') }}"
+           class="nav-link{% if request.endpoint == 'characters.query' %} active{% endif %}">
+          Query
+        </a>
+        <a href="{{ url_for('characters.timeline') }}"
+           class="nav-link{% if request.endpoint == 'characters.timeline' %} active{% endif %}">
+          Timeline
+        </a>
+        <a href="{{ url_for('characters.compare') }}"
+           class="nav-link{% if request.endpoint == 'characters.compare' %} active{% endif %}">
+          Compare
+        </a>
+        <a href="{{ url_for('export.all_characters') }}" class="nav-link">
+          Export All
+        </a>
+        <a href="{{ url_for('characters.create') }}" class="btn btn-primary btn-sm">
+          + New Character
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for category, message in messages %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>SWTOR Character Knowledgebase &mdash; local tracker</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

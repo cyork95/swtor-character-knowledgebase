@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Query Decisions — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Query Decisions</h1>
+  <span class="char-count">Search across all characters</span>
+</div>
+
+<form method="post" action="{{ url_for('characters.query') }}" class="form-card form-card-inline">
+  <div class="form-grid form-grid-query">
+
+    <div class="form-group">
+      <label class="form-label" for="alignment">Alignment</label>
+      <select class="form-control" id="alignment" name="alignment">
+        <option value="">Any</option>
+        <option value="LIGHT" {% if filters.get('alignment') == 'LIGHT' %}selected{% endif %}>Light Side</option>
+        <option value="DARK" {% if filters.get('alignment') == 'DARK' %}selected{% endif %}>Dark Side</option>
+        <option value="NEUTRAL" {% if filters.get('alignment') == 'NEUTRAL' %}selected{% endif %}>Neutral</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="companion">Companion</label>
+      <input class="form-control" type="text" id="companion" name="companion"
+             value="{{ filters.get('companion', '') }}"
+             placeholder="Partial name match">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="expansion">Expansion</label>
+      <select class="form-control" id="expansion" name="expansion">
+        <option value="">Any</option>
+        {% for exp in expansions %}
+        <option value="{{ exp }}" {% if filters.get('expansion') == exp %}selected{% endif %}>{{ exp }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="character_id">Character</label>
+      <select class="form-control" id="character_id" name="character_id">
+        <option value="">Any</option>
+        {% for char in all_chars %}
+        <option value="{{ char.id }}" {% if filters.get('character_id') == char.id|string %}selected{% endif %}>
+          {{ char.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Search</button>
+    <a href="{{ url_for('characters.query') }}" class="btn btn-ghost">Reset</a>
+  </div>
+</form>
+
+{% if submitted %}
+<div class="query-results">
+  <h2 class="section-title">
+    Results
+    <span class="count-badge">{{ results|length }}</span>
+  </h2>
+
+  {% if results %}
+  <div class="results-table-wrap">
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Character</th>
+          <th>Alignment</th>
+          <th>Decision</th>
+          <th>Companion</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dec in results %}
+        <tr>
+          <td>
+            <a href="{{ url_for('characters.detail', cid=dec.character_id) }}" class="table-link">
+              {{ dec.char_name }}
+            </a>
+            <span class="char-class-small">{{ dec.char_class or '' }}</span>
+          </td>
+          <td>
+            <span class="badge badge-{{ dec.alignment_impact | impact_class }}">
+              {{ dec.alignment_impact }}
+            </span>
+            <span class="pts-small">+{{ dec.alignment_points }}</span>
+          </td>
+          <td class="decision-cell">{{ dec.choice }}</td>
+          <td>{{ dec.companion_involved or '—' }}</td>
+          <td class="date-cell">{{ dec.timestamp[:10] if dec.timestamp else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state empty-state-sm">
+    <p>No decisions matched your filters.</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

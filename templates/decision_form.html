@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Log Decision — {{ char.name }} — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Log Decision</h1>
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; {{ char.name }}</a>
+</div>
+
+<form method="post" action="{{ url_for('decisions.log', cid=char.id) }}" class="form-card">
+  <div class="form-grid">
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="choice">Decision <span class="required">*</span></label>
+      <textarea class="form-control form-textarea" id="choice" name="choice" required
+                placeholder="Describe the choice made..."></textarea>
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="context">Context</label>
+      <input class="form-control" type="text" id="context" name="context"
+             placeholder="Where / when in the story (e.g. Tython, Chapter 1)">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="consequence">Consequence</label>
+      <textarea class="form-control form-textarea form-textarea-sm" id="consequence" name="consequence"
+                placeholder="What happened as a result?"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="alignment_impact">Alignment</label>
+      <select class="form-control" id="alignment_impact" name="alignment_impact">
+        <option value="NEUTRAL">Neutral</option>
+        <option value="LIGHT">Light Side</option>
+        <option value="DARK">Dark Side</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="alignment_points">Alignment Points</label>
+      <input class="form-control" type="number" id="alignment_points" name="alignment_points"
+             value="0" min="0" placeholder="e.g. 150">
+      <span class="form-hint">Magnitude only — direction set by alignment above.</span>
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="companion_involved">Companion Involved</label>
+      <input class="form-control" type="text" id="companion_involved" name="companion_involved"
+             placeholder="e.g. Kira Carsen">
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="tags">Tags</label>
+      <input class="form-control" type="text" id="tags" name="tags"
+             placeholder="light-side, mercy, chapter-3 (comma-separated)">
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Log Decision</button>
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

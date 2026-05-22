@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{% if planet %}Edit{% else %}Add{% endif %} Planet — {{ char.name }} — SWTOR Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{% if planet %}Edit Planet{% else %}Add Planet{% endif %}</h1>
+  <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost btn-sm">&larr; {{ char.name }}</a>
+</div>
+
+<form method="post" action="{{ action_url }}" class="form-card">
+  <div class="form-grid">
+
+    <div class="form-group">
+      <label class="form-label" for="planet_name">Planet <span class="required">*</span></label>
+      <input class="form-control" type="text" id="planet_name" name="planet_name" required
+             list="planet-list"
+             value="{{ planet.planet_name if planet else '' }}"
+             placeholder="e.g. Coruscant, Dromund Kaas…">
+      <datalist id="planet-list">
+        {% for p in planets %}
+        <option value="{{ p }}">
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="status">Status</label>
+      <select class="form-control" id="status" name="status">
+        <option value="not_started" {% if planet and planet.status == 'not_started' %}selected{% endif %}>Not Started</option>
+        <option value="in_progress" {% if not planet or planet.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+        <option value="complete"    {% if planet and planet.status == 'complete' %}selected{% endif %}>Complete</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label checkbox-label">
+        <input type="checkbox" name="bonus_series"
+               {% if planet and planet.bonus_series %}checked{% endif %}>
+        Bonus Series Complete
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label checkbox-label">
+        <input type="checkbox" name="datacrons"
+               {% if planet and planet.datacrons %}checked{% endif %}>
+        All Datacrons Collected
+      </label>
+    </div>
+
+    <div class="form-group form-group-wide">
+      <label class="form-label" for="notes">Notes</label>
+      <textarea class="form-control form-textarea" id="notes" name="notes"
+                placeholder="Notable quests, choices made here, things to revisit…">{{ planet.notes if planet and planet.notes else '' }}</textarea>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {% if planet %}Save Changes{% else %}Add Planet{% endif %}
+    </button>
+    <a href="{{ url_for('characters.detail', cid=char.id) }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}
