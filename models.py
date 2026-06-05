@@ -24,14 +24,15 @@ def create_character(data):
     cursor = db.execute(
         '''INSERT INTO characters
            (name, class, advanced_class, species, server,
-            light_side_pts, dark_side_pts, current_chapter, current_expansion, legacy, notes,
+            level, light_side_pts, dark_side_pts, current_chapter, current_expansion, legacy, notes,
             crew_skill_1, crew_skill_1_level, crew_skill_2, crew_skill_2_level,
             crew_skill_3, crew_skill_3_level,
             inventory_notes, rp_homeworld, rp_motivation, rp_personality,
             rp_relationships, rp_backstory)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (data['name'], data.get('class'), data.get('advanced_class'),
          data.get('species'), data.get('server'),
+         data.get('level', 1),
          data.get('light_side_pts', 0), data.get('dark_side_pts', 0),
          data.get('current_chapter'), data.get('current_expansion'),
          data.get('legacy'), data.get('notes'),
@@ -52,7 +53,7 @@ def update_character(character_id, data):
     db.execute(
         '''UPDATE characters SET
            name=?, class=?, advanced_class=?, species=?, server=?,
-           light_side_pts=?, dark_side_pts=?,
+           level=?, light_side_pts=?, dark_side_pts=?,
            current_chapter=?, current_expansion=?, legacy=?, notes=?,
            crew_skill_1=?, crew_skill_1_level=?,
            crew_skill_2=?, crew_skill_2_level=?,
@@ -63,6 +64,7 @@ def update_character(character_id, data):
            WHERE id=?''',
         (data['name'], data.get('class'), data.get('advanced_class'),
          data.get('species'), data.get('server'),
+         data.get('level', 1),
          data.get('light_side_pts', 0), data.get('dark_side_pts', 0),
          data.get('current_chapter'), data.get('current_expansion'),
          data.get('legacy'), data.get('notes'),

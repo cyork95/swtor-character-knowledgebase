@@ -32,6 +32,7 @@
       </div>
       <span class="char-class">
         {{ char.class or '—' }}{% if char.advanced_class %} / {{ char.advanced_class }}{% endif %}
+        {% if char.level %}<span class="char-level">Lvl {{ char.level }}</span>{% endif %}
       </span>
       {% if char.legacy %}<span class="char-legacy">{{ char.legacy }} Legacy</span>{% endif %}
     </header>

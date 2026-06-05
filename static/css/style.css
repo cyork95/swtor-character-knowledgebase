@@ -964,6 +964,13 @@ select.form-control option { background: var(--bg-secondary); }
   font-style: italic;
 }
 
+.char-level {
+  font-size: 0.75rem;
+  color: var(--gold);
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
 /* =========================================================
    Influence
    ========================================================= */

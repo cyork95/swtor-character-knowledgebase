@@ -74,6 +74,12 @@
     </div>
 
     <div class="form-group">
+      <label class="form-label" for="level">Level</label>
+      <input class="form-control" type="number" id="level" name="level"
+             value="{{ char.level if char else 1 }}" min="1" max="80">
+    </div>
+
+    <div class="form-group">
       <label class="form-label" for="light_side_pts">Light Side Points</label>
       <input class="form-control" type="number" id="light_side_pts" name="light_side_pts"
              value="{{ char.light_side_pts if char else 0 }}" min="0">

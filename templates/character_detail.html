@@ -9,6 +9,7 @@
     <h1 class="page-title">{{ char.name }}</h1>
     <p class="char-subtitle">
       {{ char.class or '—' }}{% if char.advanced_class %} / {{ char.advanced_class }}{% endif %}
+      {% if char.level %} &bull; <span class="char-level">Level {{ char.level }}</span>{% endif %}
       {% if char.species %} &bull; {{ char.species }}{% endif %}
       {% if char.server %} &bull; {{ char.server }}{% endif %}
       {% if char.legacy %} &bull; <em>{{ char.legacy }} Legacy</em>{% endif %}

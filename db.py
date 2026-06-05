@@ -1,8 +1,12 @@
+import os
 import sqlite3
 from pathlib import Path
 from flask import g
 
-DB_PATH = Path.home() / 'swtor-tracker' / 'swtor.db'
+# Locally: ~/swtor-tracker/swtor.db
+# On Fly.io: set SWTOR_DB_PATH=/data/swtor.db (persistent volume)
+_default = Path.home() / 'swtor-tracker' / 'swtor.db'
+DB_PATH = Path(os.environ.get('SWTOR_DB_PATH', _default))
 
 _SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -15,6 +19,7 @@ CREATE TABLE IF NOT EXISTS characters (
     advanced_class TEXT,
     species TEXT,
     server TEXT,
+    level INTEGER DEFAULT 1,
     light_side_pts INTEGER DEFAULT 0,
     dark_side_pts INTEGER DEFAULT 0,
     current_chapter TEXT,

@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+*.db
+*.sqlite3
+.git/
+.gitignore
+.claude/
+venv/
+env/
+.venv/
+_insert_*.py

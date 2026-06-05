@@ -56,6 +56,7 @@ def _char_data_from_form():
         'advanced_class':   request.form.get('advanced_class', '').strip(),
         'species':          request.form.get('species', '').strip(),
         'server':           request.form.get('server', '').strip(),
+        'level':            _safe_int(request.form.get('level'), 1),
         'light_side_pts':   _safe_int(request.form.get('light_side_pts')),
         'dark_side_pts':    _safe_int(request.form.get('dark_side_pts')),
         'current_chapter':  request.form.get('current_chapter', '').strip(),
